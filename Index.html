@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset = "utf-8">
+<meta name = "viewport" content = "width = device-width, initial-scale = 1.0">
+
+<title>Login Form</title>
+	<style>
+
+		body{
+			background-color: wheat;
+			}
+		img{
+			margin-left: 370px;
+			margin-right: 200px;
+			height: 200px;
+			width: 600px;
+			margin-top: -1px;
+		}
+		marquee{
+			font-size: 15px;
+			color: red;
+		}
+		
+		div{
+			padding: 2rem;
+			background: greenyellow;
+			border-radius: 25px;
+			box-shadow: 0 4px 40px rgba(0, 0, 0, 0.1);
+			backdrop-filter: blur(7.9px);
+			-webkit-backdrop-filter: blur(7.9px);
+			border: 1px solid rgba(19, 98, 109, 1);
+			margin-top: -20px;
+			margin-left: 490px;
+			margin-right: 490px;
+			height: 275px;
+		}
+		
+		h2{text-align: center;
+			color: Black;
+			font-size: 14px;
+
+
+		}
+			
+		label{
+			color: blue ;
+			font-size: 25px;
+			margin-left: 30px;
+		}
+		input[type=text],input[type=password]{
+			width: 250px;
+			height: 25px;
+			margin-left:25px;
+			border-radius: 5px;
+			border: 2px solid black;
+			font-size: 15px;
+			background-color: seashell;
+
+		}
+		button[type=submit]{
+			background-color: blue;
+			color: white;
+			font-size: 24px;
+			margin-left: 100px;
+			width: 100px;
+			height: 30px;
+			border-radius: 10px;
+		}
+		button[type=submit]:hover{
+			background-color: brown;
+			color: white;
+			cursor: pointer;
+				}
+		ul{list-style-type: none;
+			margin-left: 10px;
+		}
+		li{display: inline;}
+		a{
+			color:black ;
+			font-size: 20px;
+			text-decoration: none ;
+			padding: 5px;
+
+		}
+		a:hover{
+			color: red;
+		}
+	</style>
+
+<script>
+
+const validUsername = "Inventory";
+const validPassword = "password123";
+
+function validateLogin() { 
+	const username = document.getElementById("username").value;
+	const password = document.getElementById("password").value;
+
+	if (username === validUsername && password === validPassword){
+		window.location.href = "Inventory.html";
+		 return false;
+		} else {
+		alert ("Wrong Username Or Password"); 
+		return false;
+		}
+	}
+
+</script>
+
+</head>
+
+<body >
+
+	<img src="tumblr_mn03lbrVFk1s8hnhko1_500.gif">
+	<h2 style=" font-size: 30px; color: blue; margin-top: -2px;">Inventory App 2025</h2>
+<div>
+	
+<h2 style=" margin-top: 0px;">Pease Enter Your User Name and Password</h2>
+	<form onsubmit = "return validateLogin()">
+
+		<label for = "username">Username:</label><br>
+	<input type = "text" id = "username" placeholder = "Enter Username....." name = "username" required><br><br>
+
+
+	<label for = "Password">Password:</label><br>
+	<input type = "password" id = "password" placeholder = "Enter Password....." name = "password" required><br><br>
+
+	<button type = "submit">Login</button>
+</form>
+<ul>
+	<li><a href="#">Forget Password?</a></li>
+	<li><a href="#">Sign Up</a></li>
+</ul>
+
+
+	<marquee behavior="scroll" direction="left">আপনার প্রতিষ্ঠানের জন‌্য এপস/ওয়েবসাইট তৈরি করতে অর্ডার করুন 01773656574 নাম্বারে</marquee>
+</div>
+</body>
+
+
+</html>

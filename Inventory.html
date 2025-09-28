@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ইনভেন্টরি (+Finance) — Range Reports + Firebase Sync</title>
+  <style>
+    :root{--accent:#0b84ff;--muted:#666}
+    body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Bengali',"Noto Sans",sans-serif;margin:0;padding:18px;background:black; color:#111}
+    .container{max-width:1200px;margin:0 auto;background:greenyellow; padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(15,15,15,0.06)}
+    h1{margin:0 0 8px;font-size:20px}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:16px}
+    form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,button,select,textarea{padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    button.primary{background:var(--accent);color:#fff;border:none}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+    th{background:#fafbff;font-weight:600}
+    .muted{color:var(--muted);font-size:13px}
+    .panel{background:#fbfdff;padding:12px;border-radius:8px}
+    .small{font-size:13px;padding:6px}
+    .right{text-align:right}
+    .actions button{margin-right:6px}
+    .auth{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr} form{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style=" font-size: 35px; color: red; text-align: center;">XYZ Business Store</h1>
+    <p style=" font-size: 25px; color: black ; text-align: center;">Address : -------Bangladesh</p>
+    <marquee behavior="scroll" direction="left">আপনার প্রতিষ্ঠানের জন‌্য এপস/ওয়েবসাইট তৈরি করতে অর্ডার করুন 01773656574 নাম্বারে</marquee>
+       <div class="grid">
+      <div>
+        <div class="panel">
+          <h3 style="margin-top:0">নতুন আইটেম</h3>
+          <form id="itemForm">
+            <div>
+              <label>পণ্যের নাম</label>
+              <input id="iname" required placeholder="পণ্যের নাম লিখুন">
+            </div>
+            <div>
+              <label>কোড (ঐচ্ছিক)</label>
+              <input id="icode" placeholder="কোড">
+            </div>
+            <div>
+              <label>ডিফল্ট ইউনিট মূল্য (৳)</label>
+              <input id="unitPrice" type="number" min="0" step="0.01" value="0">
+            </div>
+            <div>
+              <label>বর্ণনা</label>
+              <input id="idesc" placeholder="বর্ণনা">
+            </div>
+            <div class="controls" style="grid-column:1 / -1;margin-top:6px">
+              <button class="primary" id="addItem">আইটেম যোগ করুন</button>
+              <button type="button" id="resetItem">রিসেট</button>
+              <div class="muted">মোট আইটেম: <strong id="itemCount">0</strong></div>
+            </div>
+          </form>
+
+          <hr>
+
+          <h3 style="margin:8px 0">লেনদেন (IN/OUT)</h3>
+          <form id="txForm">
+            <div>
+              <label>আইটেম</label>
+              <select id="txItem"></select>
+            </div>
+            <div>
+              <label>টাইপ</label>
+              <select id="txType"><option value="IN">IN (ক্রয়)</option><option value="OUT">OUT (বিক্রয়)</option></select>
+            </div>
+            <div>
+              <label>পরিমাণ</label>
+              <input id="txQty" type="number" min="1" value="1">
+            </div>
+            <div>
+              <label>প্রতি ইউনিট মূল্য (৳)</label>
+              <input id="txUnitPrice" type="number" min="0" step="0.01" value="0">
+            </div>
+            <div>
+              <label>তারিখ</label>
+              <input id="txDate" type="date">
+            </div>
+            <div style="grid-column:1 / -1">
+              <label>নোট</label>
+              <input id="txNote" placeholder="বিবরণ">
+            </div>
+            <div class="controls" style="grid-column:1 / -1;margin-top:6px">
+              <button class="primary" id="addTx">লেনদেন যোগ করুন</button>
+              <button type="button" id="clearTx">ক্লিয়ার</button>
+            </div>
+          </form>
+        </div>
+
+        <div style="margin-top:12px" class="panel">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input id="search" placeholder="সার্চ (নাম/কোড/নোট)" style="flex:1">
+            <select id="filterItem"><option value="">সব আইটেম</option></select>
+            <button id="exportAll" class="small">JSON ব্যাকআপ</button>
+            <input type="file" id="importFile" accept="application/json" style="display:none">
+            <button id="importBtn" class="small">JSON ইম্পোর্ট</button>
+          </div>
+
+          <table id="txTable">
+            <thead>
+              <tr><th>#</th><th>তারিখ</th><th>পণ্য</th><th>টাইপ</th><th>পরিমাণ</th><th>প্রতি ইউনিট</th><th>মোট</th><th>COGS</th><th>একশন</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside>
+        <div class="panel">
+          <h3 style="margin-top:0">রিপোর্টস</h3>
+          <div class="muted">তারিখ রেঞ্জ দিয়ে রিপোর্ট দেখুন অথবা মাসিক সারসংক্ষেপ দেখুন</div>
+
+          <div style="margin-top:8px">
+            <label>From</label>
+            <input id="rFrom" type="date">
+            <label>To</label>
+            <input id="rTo" type="date">
+            <div class="controls" style="margin-top:6px">
+              <button id="rangeReport" class="small">রেঞ্জ রিপোর্ট দেখুন</button>
+              <button id="monthlyReport" class="small">মাসিক সারসংক্ষেপ</button>
+            </div>
+          </div>
+
+          <hr>
+          <div>মোট ইনভেন্টরি ভ্যালু: <strong id="totalStockValue">0.00</strong> ৳</div>
+          <div>মোট ক্রয়: <strong id="totalPurchases">0.00</strong> ৳</div>
+          <div>মোট বিক্রি: <strong id="totalRevenue">0.00</strong> ৳</div>
+          <div>মোট COGS: <strong id="totalCOGS">0.00</strong> ৳</div>
+          <div style="margin-top:8px">লাভ (Revenue − COGS): <strong id="profit">0.00</strong> ৳</div>
+
+          <hr>
+          <div id="reportOutput" style="max-height:240px;overflow:auto;margin-top:8px"></div>
+
+          <hr>
+          <h4>আইটেম তালিকা</h4>
+          <div id="itemsList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
+        </div>
+      </aside>
+    </div>
+
+<button style="  width: 1210px; max-height: auto; background: #FFF8DC;   border: red;  margin-left: -4px;  margin-bottom: 1px; margin-top: 5px;">  
+<table align="center"><tr><td><p style=" margin-right: 0px; margin-left: 0px; font-family:Arial Black; font-size: 15px;">Email: mdmamun1581@gmail<a href="mailto:mdmamun1581@gmail.com">.com</a></p></td><td><p style=" margin-right: 0px; margin-left: 200px; font-family:Arial Black; font-size: 15px;">  Mobile: 01773656574</p></td><td><p style=" margin-right: 0px; margin-left: 150px; font-family:Arial Black; font-size: 15px;">WebSite: bdmamunsir.github.io/<a href="bdmamunsir.github.io/.com">.com</a></p></td></tr></table>
+
+
+
+
+ <p  style="margin-left: 990px; font-style: italic; font-family:Arial Black; font-size: 20px;">My Social Media </p>
+
+
+
+<a href="https://www.youtube.com/@Bdmamunsir"><img src="Capture.PNG" alt="YouTube" style=" margin-left: 990px;  border-radius: 20px; background-color: transparent; width: 28px; height: 28px;" width="28" height="28" ></a>
+
+<a href="https://www.facebook.com/bdmamunsir"><img src="Picture1.png" alt="Facebook"  style=" margin-left: 10px;  border-radius: 20px; background-color: transparent; width: 28px; height: 28px;" width="28" height="28"></a>
+
+<a href="https://www.linkedin.com"><img src="Untitled-1.png" alt="LinkedIn"  style="  margin-left: 5px;  border-radius: 20px; background-color: transparent; width: 28px; height: 28px;" width="28" height="28"></a>
+
+
+
+
+
+<p><a href="https://www.youtube.com/@Bdmamunsir" role="menuitem" style=" text-decoration: none; color: brown; text-align: center; font-style: italic; font-family: arial black; font-size: 17px;  margin-left: 70px;">Design By Md.Mamun</a></p>
+</button>
+ 
+  </div>
+
+  <!--
+    IMPORTANT:
+    - Replace the firebaseConfig placeholder below with your Firebase project's config.
+    - Enable Email/Password sign-in method in Firebase Console (Authentication).
+    - Create Firestore (in Native mode). Collection names used: 'users' -> each user doc stores 'items' and 'txs' subcollections.
+  -->
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // --- FIREBASE CONFIG: replace these with your project's values ---
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      // storageBucket, messagingSenderId, appId optional
+    };
+    // Initialize
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+
+  <script>
+    // Local keys
+    const LS_ITEMS = 'inv_items_vf';
+    const LS_TX = 'inv_tx_vf';
+    let items = [];
+    let txs = [];
+    let currentUser = null; // firebase user
+
+    // DOM refs
+    const regEmail = document.getElementById('regEmail');
+    const regPass = document.getElementById('regPass');
+    const btnRegister = document.getElementById('btnRegister');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPass = document.getElementById('loginPass');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnLogout = document.getElementById('btnLogout');
+
+    const iname = document.getElementById('iname');
+    const icode = document.getElementById('icode');
+    const unitPrice = document.getElementById('unitPrice');
+    const idesc = document.getElementById('idesc');
+    const itemCount = document.getElementById('itemCount');
+
+    const txItem = document.getElementById('txItem');
+    const txType = document.getElementById('txType');
+    const txQty = document.getElementById('txQty');
+    const txUnitPrice = document.getElementById('txUnitPrice');
+    const txDate = document.getElementById('txDate');
+    const txNote = document.getElementById('txNote');
+    const txTable = document.querySelector('#txTable tbody');
+    const searchIn = document.getElementById('search');
+    const filterItem = document.getElementById('filterItem');
+
+    const totalStockValue = document.getElementById('totalStockValue');
+    const totalPurchases = document.getElementById('totalPurchases');
+    const totalRevenue = document.getElementById('totalRevenue');
+    const totalCOGS = document.getElementById('totalCOGS');
+    const profitEl = document.getElementById('profit');
+    const itemsList = document.getElementById('itemsList');
+    const reportOutput = document.getElementById('reportOutput');
+
+    const rFrom = document.getElementById('rFrom');
+    const rTo = document.getElementById('rTo');
+    const rangeReport = document.getElementById('rangeReport');
+    const monthlyReport = document.getElementById('monthlyReport');
+
+    const exportAll = document.getElementById('exportAll');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+    const exportItems = document.getElementById('exportItems');
+    const exportTx = document.getElementById('exportTx');
+
+    function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6) }
+
+    // --- Auth handlers ---
+    btnRegister.addEventListener('click', async ()=>{
+      const e = regEmail.value.trim(); const p = regPass.value;
+      if(!e || !p) return alert('ইমেইল ও পাসওয়ার্ড দিন');
+      try{
+        const userCred = await auth.createUserWithEmailAndPassword(e,p);
+        alert('রেজিস্টার সফল — লগইন করে সিঙ্ক করবেন');
+        regEmail.value=''; regPass.value='';
+      }catch(err){ alert('রেজিস্টার ত্রুটি: '+err.message) }
+    });
+
+    btnLogin.addEventListener('click', async ()=>{
+      const e = loginEmail.value.trim(); const p = loginPass.value;
+      if(!e || !p) return alert('ইমেইল ও পাসওয়ার্ড দিন');
+      try{
+        const uc = await auth.signInWithEmailAndPassword(e,p);
+        loginEmail.value=''; loginPass.value='';
+        // onAuthStateChanged will handle rest
+      }catch(err){ alert('লগইন ত্রুটি: '+err.message) }
+    });
+
+    btnLogout.addEventListener('click', async ()=>{ await auth.signOut(); alert('লগআউট হয়েছে'); });
+
+    // auth state
+    auth.onAuthStateChanged(async user=>{
+      currentUser = user;
+      if(user){
+        btnLogout.style.display='inline-block';
+        btnLogin.style.display='none';
+        // load remote or merge
+        await syncFromFirestore();
+      } else {
+        btnLogout.style.display='none';
+        btnLogin.style.display='inline-block';
+      }
+      renderAll();
+    });
+
+    // --- Local load/save ---
+    function loadLocal(){
+      try{ items = JSON.parse(localStorage.getItem(LS_ITEMS) || '[]') }catch(e){ items = [] }
+      try{ txs = JSON.parse(localStorage.getItem(LS_TX) || '[]') }catch(e){ txs = [] }
+    }
+    function saveLocal(){ localStorage.setItem(LS_ITEMS, JSON.stringify(items)); localStorage.setItem(LS_TX, JSON.stringify(txs)); }
+
+    // --- Firestore sync helpers ---
+    async function syncFromFirestore(){
+      if(!currentUser) return;
+      const uid = currentUser.uid;
+      try{
+        const userDoc = db.collection('users').doc(uid);
+        const doc = await userDoc.get();
+        if(doc.exists){
+          const data = doc.data();
+          // if remote has data, ask to merge or replace
+          if((data.items && data.items.length) || (data.txs && data.txs.length)){
+            if(confirm('Firebase-এ পূর্বে ডেটা আছে — Replace করলে লোকাল ডেটা হারাবে. Replace করলে OK, না হলে Merge')){
+              items = data.items || [];
+              txs = data.txs || [];
+            } else {
+              // merge simple: concat unique ids
+              const byIdI = Object.fromEntries(items.map(i=>[i.id,i]));
+              (data.items||[]).forEach(i=> byIdI[i.id] = i);
+              items = Object.values(byIdI);
+              const byIdT = Object.fromEntries(txs.map(t=>[t.id,t]));
+              (data.txs||[]).forEach(t=> byIdT[t.id] = t);
+              txs = Object.values(byIdT);
+            }
+          }
+        } else {
+          // no remote doc -> create from local
+          await userDoc.set({items, txs});
+        }
+        saveLocal(); renderAll();
+      }catch(err){ console.error('syncFromFirestore',err); alert('Firestore sync failed: '+err.message) }
+    }
+
+    async function pushToFirestore(){
+      if(!currentUser) return;
+      const uid = currentUser.uid;
+      try{
+        await db.collection('users').doc(uid).set({items, txs});
+      }catch(err){ console.error('pushToFirestore',err) }
+    }
+
+    // --- CRUD ---
+    document.getElementById('itemForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const name = iname.value.trim(); if(!name) return alert('নাম দিন');
+      const it = { id: uid(), name, code: icode.value.trim(), desc: idesc.value.trim(), unitPrice: Number(unitPrice.value)||0, created: new Date().toISOString() };
+      items.push(it); saveLocal(); renderAll(); if(currentUser) pushToFirestore(); e.target.reset();
+    });
+
+    document.getElementById('txForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const itemId = txItem.value; if(!itemId) return alert('আইটেম সিলেক্ট করুন');
+      const type = txType.value; const qty = Number(txQty.value) || 0; if(qty<=0) return alert('পরিমাণ সঠিক দিন');
+      const unit = Number(txUnitPrice.value) || 0; const dateVal = txDate.value ? new Date(txDate.value).toISOString() : new Date().toISOString();
+      const currentQty = computeQty(itemId); const currentAvg = computeAvgCost(itemId);
+      if(type==='OUT' && qty>currentQty) if(!confirm('স্টক কম — চালিয়ে দিবেন?')) return;
+      if(type==='IN'){
+        const prevTotal = currentQty * currentAvg; const newTotal = prevTotal + qty * unit; const newQty = currentQty + qty; const newAvg = newQty>0 ? (newTotal/newQty):0;
+        const item = items.find(i=>i.id===itemId); if(item) item.unitPrice = round(newAvg,2);
+        txs.push({id:uid(), itemId, type:'IN', qty, unitPrice:unit, total:round(qty*unit,2), date:dateVal, note:txNote.value.trim(), cogs:0});
+      } else {
+        const cogs = round(qty * currentAvg,2);
+        txs.push({id:uid(), itemId, type:'OUT', qty, unitPrice:unit, total:round(qty*unit,2), date:dateVal, note:txNote.value.trim(), cogs});
+      }
+      saveLocal(); renderAll(); if(currentUser) pushToFirestore(); document.getElementById('txForm').reset();
+    });
+
+    window.deleteTx = function(id){ if(!confirm('মুছে ফেলতে চান?')) return; txs = txs.filter(t=>t.id!==id); saveLocal(); renderAll(); if(currentUser) pushToFirestore(); }
+
+    // --- computations & rendering ---
+    function computeQty(itemId){ return txs.reduce((s,t)=> t.itemId===itemId ? s + (t.type==='IN' ? Number(t.qty) : -Number(t.qty)) : s, 0); }
+    function computeAvgCost(itemId){ const item = items.find(i=>i.id===itemId); let avg = item ? Number(item.unitPrice)||0 : 0; let qty = 0; const sorted = txs.slice().sort((a,b)=> new Date(a.date)-new Date(b.date)); for(const t of sorted){ if(t.itemId!==itemId) continue; if(t.type==='IN'){ const prevTotal = qty*avg; const newTotal = prevTotal + Number(t.qty)*Number(t.unitPrice); qty = qty + Number(t.qty); avg = qty>0 ? (newTotal/qty):0; } else { qty = qty - Number(t.qty); if(qty<0) qty=0; } } return avg; }
+    function computeItemStockValue(itemId){ return round(computeQty(itemId) * computeAvgCost(itemId),2); }
+    function computeTotals(){ const totalStockVal = items.reduce((s,it)=> s + computeItemStockValue(it.id),0); const purchases = txs.filter(t=>t.type==='IN').reduce((s,t)=> s + Number(t.total || (t.qty*t.unitPrice)),0); const revenue = txs.filter(t=>t.type==='OUT').reduce((s,t)=> s + Number(t.total || (t.qty*t.unitPrice)),0); const cogs = txs.filter(t=>t.type==='OUT').reduce((s,t)=> s + Number(t.cogs || 0),0); return { totalStockVal:round(totalStockVal,2), purchases:round(purchases,2), revenue:round(revenue,2), cogs:round(cogs,2) }; }
+
+    function renderAll(){ populateItemSelects(); renderTxTable(); renderItemsList(); renderTotals(); itemCount.textContent = items.length; }
+    function populateItemSelects(){ const opts = ['<option value="">--নির্বাচন করুন--</option>'].concat(items.map(i=>`<option value="${i.id}">${escape(i.name)} ${i.code? ' — '+escape(i.code):''}</option>`)).join(''); txItem.innerHTML = opts; filterItem.innerHTML = '<option value="">সব আইটেম</option>' + items.map(i=>`<option value="${i.id}">${escape(i.name)}</option>`).join(''); }
+
+    function renderTxTable(){ const q = searchIn.value.trim().toLowerCase(); const fid = filterItem.value; const sorted = txs.slice().sort((a,b)=> new Date(a.date)-new Date(b.date)); txTable.innerHTML=''; let idx=0; const balMap = {}; for(const t of sorted){ if(fid && t.itemId!==fid) continue; const item = items.find(i=>i.id===t.itemId) || {name:'(অজানা)'}; if(q){ const hay=[item.name,item.code||'',t.note||''].join(' ').toLowerCase(); if(!hay.includes(q)) continue; } idx++; balMap[t.itemId] = (balMap[t.itemId]||0) + (t.type==='IN'? Number(t.qty): -Number(t.qty)); const tr = document.createElement('tr'); tr.innerHTML = `<td>${idx}</td><td>${formatDate(t.date)}</td><td>${escape(item.name)}</td><td>${t.type}</td><td>${t.qty}</td><td>${formatNumber(t.unitPrice)}</td><td>${formatNumber(t.total)}</td><td>${formatNumber(t.cogs||0)}</td><td><button class="small" onclick="deleteTx('${t.id}')">মুছুন</button></td>`; txTable.appendChild(tr); } }
+
+    function renderItemsList(){ itemsList.innerHTML = items.map(it=>{ const qty = computeQty(it.id); const avg = computeAvgCost(it.id); const val = round(qty*avg,2); return `<div style="padding:6px;border-bottom:1px solid #eee"><strong>${escape(it.name)}</strong> — qty: ${qty} — unit avg: ${formatNumber(avg)} ৳ — value: ${formatNumber(val)} ৳</div>`; }).join(''); }
+
+    function renderTotals(){ const t = computeTotals(); totalStockValue.textContent = formatNumber(t.totalStockVal); totalPurchases.textContent = formatNumber(t.purchases); totalRevenue.textContent = formatNumber(t.revenue); totalCOGS.textContent = formatNumber(t.cogs); profitEl.textContent = formatNumber(t.revenue - t.cogs); }
+
+    // --- Reports: date range and monthly ---
+    rangeReport.addEventListener('click', ()=>{
+      const from = rFrom.value ? new Date(rFrom.value) : null; const to = rTo.value ? new Date(rTo.value) : null; if(from && to && from>to) return alert('From ছোট হতে হবে To এর থেকে');
+      const filtered = txs.filter(t=>{
+        const d = new Date(t.date);
+        if(from && d < new Date(from.setHours(0,0,0,0))) return false;
+        if(to && d > new Date(to.setHours(23,59,59,999))) return false;
+        return true;
+      });
+      const purchases = filtered.filter(t=>t.type==='IN').reduce((s,t)=> s + Number(t.total||0),0);
+      const revenue = filtered.filter(t=>t.type==='OUT').reduce((s,t)=> s + Number(t.total||0),0);
+      const cogs = filtered.filter(t=>t.type==='OUT').reduce((s,t)=> s + Number(t.cogs||0),0);
+      const html = `<div>রেঞ্জ: ${rFrom.value || '—'} → ${rTo.value || '—'}</div><div>ক্রয়: ${formatNumber(purchases)} ৳</div><div>বিক্রি: ${formatNumber(revenue)} ৳</div><div>COGS: ${formatNumber(cogs)} ৳</div><div>লাভ: ${formatNumber(revenue - cogs)} ৳</div>`;
+      reportOutput.innerHTML = html;
+    });
+
+    monthlyReport.addEventListener('click', ()=>{
+      // group by YYYY-MM
+      const map = {};
+      for(const t of txs){ const d = new Date(t.date); const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); if(!map[key]) map[key] = {purchases:0,revenue:0,cogs:0}; if(t.type==='IN') map[key].purchases += Number(t.total||0); else { map[key].revenue += Number(t.total||0); map[key].cogs += Number(t.cogs||0); } }
+      const rows = Object.keys(map).sort().map(k=> `<div style="padding:6px;border-bottom:1px solid #eee"><strong>${k}</strong> — ক্রয়: ${formatNumber(map[k].purchases)} ৳ — বিক্রি: ${formatNumber(map[k].revenue)} ৳ — COGS: ${formatNumber(map[k].cogs)} ৳ — লাভ: ${formatNumber(map[k].revenue - map[k].cogs)} ৳</div>` ).join('');
+      reportOutput.innerHTML = rows || '<div class="muted">কোনো লেনদেন নেই</div>';
+    });
+
+    // export/import
+    exportAll.addEventListener('click', ()=>{ const payload = {items, txs}; const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='inv_backup.json'; a.click(); URL.revokeObjectURL(url); });
+    importBtn.addEventListener('click', ()=> importFile.click());
+    importFile.addEventListener('change', ev=>{ const f = ev.target.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = function(){ try{ const data = JSON.parse(reader.result); if(data.items && data.txs){ if(confirm('Replace local data? OK=Replace, Cancel=Merge')){ items = data.items; txs = data.txs; } else { const byIdI=Object.fromEntries(items.map(i=>[i.id,i])); (data.items||[]).forEach(i=>byIdI[i.id]=i); items=Object.values(byIdI); const byIdT=Object.fromEntries(txs.map(t=>[t.id,t])); (data.txs||[]).forEach(t=>byIdT[t.id]=t); txs=Object.values(byIdT); } saveLocal(); if(currentUser) pushToFirestore(); renderAll(); alert('Import complete'); } else alert('Invalid backup file'); }catch(e){ alert('Parse error'); } }; reader.readAsText(f); importFile.value=''; });
+
+    // utilities
+    function escape(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+    function formatDate(d){ try{ const dt=new Date(d); return dt.toLocaleDateString(); }catch(e){ return d } }
+    function formatNumber(n){ return Number(n||0).toFixed(2) }
+    function round(n,dec=2){ return Math.round((Number(n)||0)*Math.pow(10,dec))/Math.pow(10,dec) }
+
+    // search/filter events
+    searchIn.addEventListener('input', renderTxTable);
+    filterItem.addEventListener('change', renderTxTable);
+
+    // defaults
+    txDate.value = (new Date()).toISOString().slice(0,10);
+    rFrom.value = '';
+    rTo.value = '';
+
+    // init
+    loadLocal(); renderAll();
+
+    // expose for debug
+    window._inv = {items, txs, loadLocal, saveLocal, pushToFirestore, syncFromFirestore};
+  </script>
+</body>
+</html>
